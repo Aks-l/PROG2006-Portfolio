@@ -1,0 +1,72 @@
+{
+	"compiler": {
+		"version": "0.8.26+commit.8a97fa7a"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					}
+				],
+				"name": "SayHello",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_name",
+						"type": "string"
+					}
+				],
+				"name": "hello",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"oblig1/helloworld.sol": "HelloWorld"
+		},
+		"evmVersion": "cancun",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"oblig1/helloworld.sol": {
+			"keccak256": "0x1f1970d161fff32fde290b83bde9d16044f603b298c9c98d9c4a85183ede3274",
+			"license": "GPL-3.0",
+			"urls": [
+				"bzz-raw://bdacdb1f38e985e001b2709356402c072f59f3f30e67d7ceb6421dcb32181709",
+				"dweb:/ipfs/QmP6SHuoUdF339rtgTCEeTGWAyBR8Y1fKg7R7uAsN85i2o"
+			]
+		}
+	},
+	"version": 1
+}
