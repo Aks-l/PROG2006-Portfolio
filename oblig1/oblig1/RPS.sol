@@ -24,7 +24,6 @@ contract RPC{
 
     uint minStake = 2;
 
-    enum votes {R, P, S}
 
     function play(bytes32 _vote, uint _stake, string memory _id) public payable {
         if (isInGame[msg.sender])
@@ -87,18 +86,32 @@ contract RPC{
         } else {
             uint winner = (activeGames[_id].revealed - voteScore) % 3;
             if      (winner == 0)
-                activeGames[_id].winner = address(1); // draw
+                activeGames[_id].winner = address(1);                   // draw
             else if (winner == 1)
-                activeGames[_id].winner = activeGames[_id].revealer; // first player to reveal wins
+                activeGames[_id].winner = activeGames[_id].revealer;    // first player to reveal wins
             else if (winner == 2)
-                activeGames[_id].winner = msg.sender; // second player to reveal wins
+                activeGames[_id].winner = msg.sender;                   // second player to reveal wins
         }
         emit revealVote(msg.sender, vote);
     }
         
+    function withdraw(string memory _id) public {
+        require(activeGames[_id].winner == msg.sender, "You did not win that game!");
+        
+        uint payout = activeGames[_id].stake * 2;
 
-    function withdraw() public {
-  
+        payable(msg.sender).transfer(payout);     
+
+        activeGames[_id] = Game({
+                id: "",
+                p1: address(0),
+                p2: address(0),
+                v1: bytes32(0),
+                v2: bytes32(0),
+                revealed: 99,
+                revealer: address(0),
+                winner: address(0),
+                stake: 0
+            });   
     }
-
 }
