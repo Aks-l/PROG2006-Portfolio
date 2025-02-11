@@ -9,69 +9,96 @@ contract RPC{
         address p2;
         bytes32 v1;
         bytes32 v2;
+        uint revealed;
+        address revealer;
         address winner;
-        int stake;
+        uint stake;
     }
 
-    // maps player to game
-    mapping(address => Game) public activeGames;
-
-    // map game id to owner (game.p1)
-    mapping(string => address) public gameOwners;
+    mapping(string => Game) public activeGames;
+    mapping(address => bool) public isInGame;
 
     event joinGame(address sender, bytes32 vote);
     event revealVote(address sender, string vote);
     event withdrawGame(address sender, int amount);
 
-    int minStake = 2;
+    uint minStake = 2;
 
-    string[3] votes = ["R", "P", "S"];
+    enum votes {R, P, S}
 
-    function play(bytes32 _vote, int _stake, string memory _id) public payable {
-        // if any game has the same stake, join that game
+    function play(bytes32 _vote, uint _stake, string memory _id) public payable {
+        if (isInGame[msg.sender])
+            return;
         if (_stake < minStake)
             return;
 
-        // if game does not exist
-        if (activeGames[msg.sender].p1 != address(0))
-            return;
-        
-        // if game has no owner, create new game
-        if (gameOwners[_id] == address(0)){
-
-            activeGames[msg.sender] = Game({
+        // if there is no player in game
+        if (activeGames[_id].p1 == address(0)) {
+            activeGames[_id] = Game({
                 id: _id,
                 p1: msg.sender,
                 p2: address(0),
                 v1: _vote,
                 v2: bytes32(0),
+                revealed: 99,
+                revealer: address(0),
                 winner: address(0),
                 stake: _stake
             });
+        } 
 
-            gameOwners[_id] == msg.sender;
-        }
-        // otherwise join game
-        // find game through p1 map
+        // if there is one player in game
         else {
-            Game storage toJoin = activeGames[gameOwners[_id]];
-            if (toJoin.stake != _stake)
-                return;
+            Game storage game = activeGames[_id];
+            require(game.stake == _stake, "Wrong stake");
+            require(game.p2 != address(0), "Game full");
 
-            toJoin.p2 = msg.sender;
-            toJoin.v2 = _vote;
-
+            game.p2 = msg.sender;
+            game.v2 = _vote;
         }
+
+        isInGame[msg.sender] = true;
+        emit joinGame(msg.sender, _vote);
     }
     
+
+
+    function reveal(string memory vote, string memory salt, string memory _id) public {
+        bytes32 hashedVote = keccak256(abi.encodePacked(vote, salt));
+        bytes32 playedVote = activeGames[_id].v1;
+       
+        if (msg.sender != activeGames[_id].p1 && msg.sender != activeGames[_id].p2)
+            return; // not in game
+
+        if (hashedVote != playedVote)
+            return; // wrong vote/salt
+
+        uint voteScore;
+        if (bytes(vote)[0] == "R")
+            voteScore = 0;
+        else if (bytes(vote)[0] == "P")
+            voteScore = 1;
+        else if (bytes(vote)[0] == "S")
+            voteScore = 2;
+
+        if (activeGames[_id].revealer == address(0)){
+            activeGames[_id].revealed = voteScore;
+            activeGames[_id].revealer = msg.sender;
+        } else {
+            uint winner = (activeGames[_id].revealed - voteScore) % 3;
+            if      (winner == 0)
+                activeGames[_id].winner = address(1); // draw
+            else if (winner == 1)
+                activeGames[_id].winner = activeGames[_id].revealer; // first player to reveal wins
+            else if (winner == 2)
+                activeGames[_id].winner = msg.sender; // second player to reveal wins
+        }
+        emit revealVote(msg.sender, vote);
+    }
+        
+
     function withdraw() public {
-
+  
     }
-
-    function reveal() public {
-    
-
-    }
-
 
 }
