@@ -11,6 +11,12 @@
 					{
 						"indexed": false,
 						"internalType": "string",
+						"name": "message",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
 						"name": "name",
 						"type": "string"
 					}
@@ -45,7 +51,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"oblig1/helloworld.sol": "HelloWorld"
+			"oblig1/oblig1/helloworld.sol": "HelloWorld"
 		},
 		"evmVersion": "cancun",
 		"libraries": {},
@@ -59,12 +65,12 @@
 		"remappings": []
 	},
 	"sources": {
-		"oblig1/helloworld.sol": {
-			"keccak256": "0x1f1970d161fff32fde290b83bde9d16044f603b298c9c98d9c4a85183ede3274",
+		"oblig1/oblig1/helloworld.sol": {
+			"keccak256": "0xcc351da487bc01ab9bfe30837e58367b512b8f3272a4ab4815d16197c3573b3b",
 			"license": "GPL-3.0",
 			"urls": [
-				"bzz-raw://bdacdb1f38e985e001b2709356402c072f59f3f30e67d7ceb6421dcb32181709",
-				"dweb:/ipfs/QmP6SHuoUdF339rtgTCEeTGWAyBR8Y1fKg7R7uAsN85i2o"
+				"bzz-raw://37f8ef990f6e431b3096b8a6b5c8e10f0bef51e067c2a599ab8e5787401ab622",
+				"dweb:/ipfs/QmWyvCkF7MXcoQxzRhXA67CTCMfrprV7ai8zmwTMtui1As"
 			]
 		}
 	},
