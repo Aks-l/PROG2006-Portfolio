@@ -50,7 +50,7 @@ contract RPC{
         else {
             Game storage game = activeGames[_id];
             require(game.stake == _stake, "Wrong stake");
-            require(game.p2 != address(0), "Game full");
+            require(game.p2 == address(0), "Game full");
 
             game.p2 = msg.sender;
             game.v2 = _vote;
@@ -66,11 +66,9 @@ contract RPC{
         bytes32 hashedVote = keccak256(abi.encodePacked(vote, salt));
         bytes32 playedVote = activeGames[_id].v1;
        
-        if (msg.sender != activeGames[_id].p1 && msg.sender != activeGames[_id].p2)
-            return; // not in game
+        require(msg.sender == activeGames[_id].p1 || msg.sender == activeGames[_id].p2, "You are not a part of this game.");
 
-        if (hashedVote != playedVote)
-            return; // wrong vote/salt
+        require(hashedVote != playedVote, "Wrong vote/salt.");
 
         uint voteScore;
         if (bytes(vote)[0] == "R")
@@ -96,7 +94,7 @@ contract RPC{
     }
         
     function withdraw(string memory _id) public {
-        require(activeGames[_id].winner == msg.sender, "You did not win that game!");
+        require(activeGames[_id].winner == msg.sender, "You did not win that game (yet)!");
         
         uint payout = activeGames[_id].stake * 2;
 
@@ -114,4 +112,15 @@ contract RPC{
                 stake: 0
             });   
     }
+
+
+
+    event makeHash(bytes32 hashed, string s);
+
+    function hashThis(string memory str, string memory salt) public {
+        bytes32 hashedValue = keccak256(abi.encodePacked(str, salt));
+        emit makeHash(hashedValue, "somethinghere");
+    }
+
+
 }

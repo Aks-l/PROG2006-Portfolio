@@ -29,6 +29,25 @@
 				"inputs": [
 					{
 						"indexed": false,
+						"internalType": "bytes32",
+						"name": "hashed",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "s",
+						"type": "string"
+					}
+				],
+				"name": "makeHash",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
 						"internalType": "address",
 						"name": "sender",
 						"type": "address"
@@ -119,6 +138,24 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "str",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "salt",
+						"type": "string"
+					}
+				],
+				"name": "hashThis",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -228,11 +265,11 @@
 	},
 	"sources": {
 		"oblig1/oblig1/RPS.sol": {
-			"keccak256": "0xaa432068231147446c9aa64611873b655b2d8d19fd3a8b308c4ad7392acee105",
+			"keccak256": "0xcc12a5ab9fb8931af650af756d742863019b8cceabd5b443d5056279e2b991e5",
 			"license": "GPL-3.0",
 			"urls": [
-				"bzz-raw://b43b9e353fdbb511db27237aff45cace2e3fa6afecd3e823abd37de5e5a972d9",
-				"dweb:/ipfs/QmTGaZyqXtb2Bzm4RsesKUdTDR8dEWg9zyte9uHh6obDmT"
+				"bzz-raw://33238894456b17e634a295213ec6d1f356352a957668836cde9651eabc1c1e47",
+				"dweb:/ipfs/QmYKtG4CABYENnM51UW6TcXKqiZhn1rcbLPa7psUQXQnXG"
 			]
 		}
 	},
