@@ -135,6 +135,11 @@
 						"internalType": "uint256",
 						"name": "stake",
 						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "startTime",
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -183,11 +188,6 @@
 						"internalType": "bytes32",
 						"name": "_vote",
 						"type": "bytes32"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_stake",
-						"type": "uint256"
 					},
 					{
 						"internalType": "string",
@@ -265,11 +265,11 @@
 	},
 	"sources": {
 		"oblig1/oblig1/RPS.sol": {
-			"keccak256": "0xcc12a5ab9fb8931af650af756d742863019b8cceabd5b443d5056279e2b991e5",
+			"keccak256": "0x8a506647ed0209217136f10bdd506ea232c3e69736ee5026b2f66bc08f0c158f",
 			"license": "GPL-3.0",
 			"urls": [
-				"bzz-raw://33238894456b17e634a295213ec6d1f356352a957668836cde9651eabc1c1e47",
-				"dweb:/ipfs/QmYKtG4CABYENnM51UW6TcXKqiZhn1rcbLPa7psUQXQnXG"
+				"bzz-raw://479dfcd72d282d01c0e8a7bd1c41c07d28777b7660731ed311b8d4f50844879f",
+				"dweb:/ipfs/QmUyW8sdn8VLHoivFDvhg7zub8soyaPMUoA3YbAeovV9Jx"
 			]
 		}
 	},

@@ -13,6 +13,7 @@ contract RPC{
         address revealer;
         address winner;
         uint stake;
+        uint startTime;
     }
 
     mapping(string => Game) public activeGames;
@@ -25,11 +26,9 @@ contract RPC{
     uint minStake = 2;
 
 
-    function play(bytes32 _vote, uint _stake, string memory _id) public payable {
-        if (isInGame[msg.sender])
-            return;
-        if (_stake < minStake)
-            return;
+    function play(bytes32 _vote,string memory _id) public payable {
+        require(!(isInGame[msg.sender]), "You are already in a game");
+        require(msg.value >= minStake, "Stake too low");
 
         // if there is no player in game
         if (activeGames[_id].p1 == address(0)) {
@@ -42,14 +41,15 @@ contract RPC{
                 revealed: 99,
                 revealer: address(0),
                 winner: address(0),
-                stake: _stake
+                stake: msg.value,
+                startTime: block.timestamp
             });
         } 
 
         // if there is one player in game
         else {
             Game storage game = activeGames[_id];
-            require(game.stake == _stake, "Wrong stake");
+            require(game.stake == msg.value, "Wrong stake");
             require(game.p2 == address(0), "Game full");
 
             game.p2 = msg.sender;
@@ -64,11 +64,12 @@ contract RPC{
 
     function reveal(string memory vote, string memory salt, string memory _id) public {
         bytes32 hashedVote = keccak256(abi.encodePacked(vote, salt));
-        bytes32 playedVote = activeGames[_id].v1;
-       
+
+        require(activeGames[_id].p2 != address(0), "Player 2 not joined yet.");
+
         require(msg.sender == activeGames[_id].p1 || msg.sender == activeGames[_id].p2, "You are not a part of this game.");
 
-        require(hashedVote != playedVote, "Wrong vote/salt.");
+        require(hashedVote != activeGames[_id].v1 || hashedVote != activeGames[_id].v2, "Wrong vote/salt.");
 
         uint voteScore;
         if (bytes(vote)[0] == "R")
@@ -83,8 +84,25 @@ contract RPC{
             activeGames[_id].revealer = msg.sender;
         } else {
             uint winner = (activeGames[_id].revealed - voteScore) % 3;
-            if      (winner == 0)
-                activeGames[_id].winner = address(1);                   // draw
+            if   (winner == 0){
+                payable(activeGames[_id].p1).transfer(activeGames[_id].stake);
+                payable(activeGames[_id].p2).transfer(activeGames[_id].stake);
+                    activeGames[_id] = Game({
+                    id: "",
+                    p1: address(0),
+                    p2: address(0),
+                    v1: bytes32(0),
+                    v2: bytes32(0),
+                    revealed: 99,
+                    revealer: address(0),
+                    winner: address(0),
+                    stake: 0,
+                    startTime: 0
+                });  
+                isInGame[activeGames[_id].p1] = false;
+                isInGame[activeGames[_id].p2] = false;
+                return; 
+            }                                                    // draw
             else if (winner == 1)
                 activeGames[_id].winner = activeGames[_id].revealer;    // first player to reveal wins
             else if (winner == 2)
@@ -94,6 +112,29 @@ contract RPC{
     }
         
     function withdraw(string memory _id) public {
+        if (activeGames[_id].startTime + 5 minutes < block.timestamp){
+            if (activeGames[_id].p2 == address(0))
+                payable(msg.sender).transfer(activeGames[_id].stake);
+            else
+                payable(msg.sender).transfer(activeGames[_id].stake*2);
+
+            activeGames[_id] = Game({
+                id: "",
+                p1: address(0),
+                p2: address(0),
+                v1: bytes32(0),
+                v2: bytes32(0),
+                revealed: 99,
+                revealer: address(0),
+                winner: address(0),
+                stake: 0,
+                startTime: 0
+            });  
+            isInGame[activeGames[_id].p1] = false;
+            isInGame[activeGames[_id].p2] = false;
+            return;  
+        }
+
         require(activeGames[_id].winner == msg.sender, "You did not win that game (yet)!");
         
         uint payout = activeGames[_id].stake * 2;
@@ -109,8 +150,11 @@ contract RPC{
                 revealed: 99,
                 revealer: address(0),
                 winner: address(0),
-                stake: 0
+                stake: 0,
+                startTime: 0
             });   
+        isInGame[activeGames[_id].p1] = false;
+        isInGame[activeGames[_id].p2] = false;
     }
 
 
