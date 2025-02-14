@@ -22,6 +22,7 @@ contract RPC{
     event joinGame(address sender, bytes32 vote);
     event revealVote(address sender, string vote);
     event withdrawGame(address sender, int amount);
+    event draw(string message);
 
     uint minStake = 2;
 
@@ -54,14 +55,13 @@ contract RPC{
 
             game.p2 = msg.sender;
             game.v2 = _vote;
+            game.startTime = block.timestamp;
         }
 
         isInGame[msg.sender] = true;
         emit joinGame(msg.sender, _vote);
     }
     
-
-
     function reveal(string memory vote, string memory salt, string memory _id) public {
         bytes32 hashedVote = keccak256(abi.encodePacked(vote, salt));
 
@@ -101,8 +101,9 @@ contract RPC{
                 });  
                 isInGame[activeGames[_id].p1] = false;
                 isInGame[activeGames[_id].p2] = false;
+                emit draw("It was a tie, both players payed back their stake.");
                 return; 
-            }                                                    // draw
+            }                                                           // draw
             else if (winner == 1)
                 activeGames[_id].winner = activeGames[_id].revealer;    // first player to reveal wins
             else if (winner == 2)

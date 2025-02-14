@@ -10,6 +10,19 @@
 				"inputs": [
 					{
 						"indexed": false,
+						"internalType": "string",
+						"name": "message",
+						"type": "string"
+					}
+				],
+				"name": "draw",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
 						"internalType": "address",
 						"name": "sender",
 						"type": "address"
@@ -265,11 +278,11 @@
 	},
 	"sources": {
 		"oblig1/oblig1/RPS.sol": {
-			"keccak256": "0x8a506647ed0209217136f10bdd506ea232c3e69736ee5026b2f66bc08f0c158f",
+			"keccak256": "0x8cd6b0f62541789b454f8bd63ce9de7edc32bd5a95d02524bee3aef48a10423c",
 			"license": "GPL-3.0",
 			"urls": [
-				"bzz-raw://479dfcd72d282d01c0e8a7bd1c41c07d28777b7660731ed311b8d4f50844879f",
-				"dweb:/ipfs/QmUyW8sdn8VLHoivFDvhg7zub8soyaPMUoA3YbAeovV9Jx"
+				"bzz-raw://6513daef98e556c442b5cc2a44ce0c1d34bd9d0750535638583a0f6236da6863",
+				"dweb:/ipfs/QmZqGnrLuPaHxF13yXKdWPGnxMdvS6zH9jcQCS1REcQeA2"
 			]
 		}
 	},
