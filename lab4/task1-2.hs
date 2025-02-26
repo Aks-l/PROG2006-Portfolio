@@ -10,11 +10,3 @@ mulTable n = do
     let table = [ [i*j | i <- [1..n]] | j <- [1..n] ]
     mapM_ (putStrLn . unwords . map (printf "%3d")) table
 
-
-{-
-maxage=0
-out=1
-for age in ages:
-    if age>maxage: out=1
-    elif age==maxage: out+=1
--}
