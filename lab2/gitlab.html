@@ -2,14 +2,12 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>GitLab Mock Interface</title>
-  <!-- Load the UMD version of ethers.js (v5) -->
+  <title></title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
   <h1>The Real GitLab</h1>
   
-  <!-- Form to Create an Issue on-chain -->
   <form id="createIssueForm">
     <h2>Create Issue</h2>
     <label for="issueURL">Issue GitLab URL:</label>
@@ -17,7 +15,6 @@
     <button type="submit">Create Issue</button>
   </form>
   
-  <!-- Form to Simulate a Merge Request Off-chain -->
   <form id="createMRForm">
     <h2>Create Merge Request</h2>
     <label for="mrIssueIndex">Issue Index:</label>
@@ -34,7 +31,6 @@
       // Replace with your deployed FundManager contract address
       const fundManagerAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
       
-      // Minimal ABI for the createIssue function
       const fundManagerAbi = [
         "function createIssue(string _gitlabURL) public",
         "function createSubmission(uint issueId) public"
@@ -42,7 +38,6 @@
       
       const fundManager = new ethers.Contract(fundManagerAddress, fundManagerAbi, signer);
       
-      // Handle the Create Issue form submission
       document.getElementById("createIssueForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const issueURL = document.getElementById("issueURL").value;
