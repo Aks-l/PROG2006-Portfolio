@@ -5,11 +5,12 @@ main = do
       update (max, freq) age
         | age > max   = (age, 1)
         | age == max  = (max, freq + 1)
-        | otherwise = (max, freq)
+        | otherwise   = (max, freq)
       (maxAge, count) = foldl update (0, 0) ages
   print count
 
 {-
+
 main :: IO ()
 main = do
     input <- getContents 

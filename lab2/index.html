@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Contract Interaction with Forms</title>
+  <!-- Load the UMD version of ethers.js (v5) -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+  <h1>Contract Interaction</h1>
+  
+  
+  <button id="getIssues">Get All Issues</button>
+  <div id="issuesList"></div>
+
+  <button id="getSubmissions">See all submissions</button>
+  <div id="submissionsList"></div>
+  
+  <!-- Form to Fund an Issue -->
+  <form id="fundForm">
+    <h2>Fund an Issue</h2>
+    <label for="fundIndex">Issue Index:</label>
+    <input type="number" id="fundIndex" name="fundIndex" min="0" required>
+    <br>
+    <label for="fundAmount">Amount (ETH):</label>
+    <input type="text" id="fundAmount" name="fundAmount" placeholder="e.g., 1" required>
+    <br>
+    <button type="submit">Fund</button>
+  </form>
+
+  <!-- Form to Vote on a Submission -->
+  <form id="voteForm">
+    <h2>Vote on a Submission</h2>
+    <label for="voteIndex">Submission Index:</label>
+    <input type="number" id="voteIndex" name="voteIndex" min="0" required>
+    <br>
+    <label for="voteAccepted">Accepted? (true/false):</label>
+    <input type="text" id="voteAccepted" name="voteAccepted" placeholder="true" required>
+    <br>
+    <button type="submit">Vote</button>
+  </form>
+
+  <!-- Form to Request Payout -->
+  <form id="payoutForm">
+    <h2>Request Payout</h2>
+    <label for="payoutIndex">Submission Index:</label>
+    <input type="number" id="payoutIndex" name="payoutIndex" min="0" required>
+    <br>
+    <button type="submit">Payout</button>
+  </form>
+
+  <script>
+    async function init() {
+      // Connect to the local Hardhat node
+      const provider = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545");
+      const signer = provider.getSigner();
+
+      // Deployed contract addresses – update these to your current deployments
+      const fundManagerAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+      const validatorMultiSigAddress = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+      const developerPayoutAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+
+      // Update the ABI for FundManager to include createIssue and getAllIssues
+      const fundManagerAbi = [
+        "function createIssue(string _gitlabURL) public",
+        "function getAllIssues() public view returns (tuple(uint id, uint prize, bool merged, string gitlabURL)[])",
+        "function getAllSubmissions() public view returns (tuple(uint subId, uint issueId, address submitter, address[] validators, uint validationScore, bool validated)[])",
+        "function fund(uint256 index) payable"
+      ];
+      const validatorMultiSigAbi = [
+        "function validate(uint256 submissionIndex, bool accepted)"
+      ];
+      const developerPayoutAbi = [
+        "function payout(uint256 submissionIndex)"
+      ];
+
+      const fundManager = new ethers.Contract(fundManagerAddress, fundManagerAbi, signer);
+      const validatorMultiSig = new ethers.Contract(validatorMultiSigAddress, validatorMultiSigAbi, signer);
+      const developerPayout = new ethers.Contract(developerPayoutAddress, developerPayoutAbi, signer);
+
+      // Handle Get All Issues button click
+      document.getElementById("getIssues").addEventListener("click", async () => {
+        try {
+          const issues = await fundManager.getAllIssues();
+          const issuesList = document.getElementById("issuesList");
+          issuesList.innerHTML = ""; // Clear previous list
+          issues.forEach((issue) => {
+            // Format prize from wei to ether
+            const prizeInEther = ethers.utils.formatEther(issue.prize);
+            issuesList.innerHTML += `<p>Issue ${issue.id.toString()}: Prize: ${prizeInEther} ETH, Merged: ${issue.merged}, URL: ${issue.gitlabURL}</p>`;
+          });
+        } catch (error) {
+          console.error(error);
+          alert("Error retrieving issues: " + error.message);
+        }
+      });
+
+      document.getElementById("getSubmissions").addEventListener("click", async () => {
+      try {
+        const submissions = await fundManager.getAllSubmissions();
+        const submissionsList = document.getElementById("submissionsList");
+        submissionsList.innerHTML = ""; // Clear previous list
+        for (let i = 0; i < submissions.length; i++) {
+          const submission = submissions[i];
+          submissionsList.innerHTML += `<p> Marge Request #${submission.subId.toString()}, Merge request for issue: ${submission.issueId.toString()}, Submitter: ${submission.submitter}, Votes: ${submission.validationScore.toString()}, Validated: ${submission.validated}</p>`;
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Error retrieving submissions: " + error.message);
+      }
+    });
+
+
+      // Handle Fund Form submission
+      document.getElementById("fundForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const index = document.getElementById("fundIndex").value;
+        const amount = document.getElementById("fundAmount").value;
+        try {
+          const tx = await fundManager.fund(index, { value: ethers.utils.parseEther(amount) });
+          await tx.wait();
+          alert("Fund transaction successful!");
+        } catch (error) {
+          console.error(error);
+          alert("Error funding: " + error.message);
+        }
+      });
+
+      // Handle Vote Form submission
+      document.getElementById("voteForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submissionIndex = document.getElementById("voteIndex").value;
+        const acceptedStr = document.getElementById("voteAccepted").value.trim().toLowerCase();
+        const accepted = acceptedStr === "true";
+        try {
+          const tx = await validatorMultiSig.validate(submissionIndex, accepted);
+          await tx.wait();
+          alert("Vote transaction successful!");
+        } catch (error) {
+          console.error(error);
+          alert("Error voting: " + error.message);
+        }
+      });
+
+      // Handle Payout Form submission
+      document.getElementById("payoutForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submissionIndex = document.getElementById("payoutIndex").value;
+        try {
+          const tx = await developerPayout.payout(submissionIndex);
+          await tx.wait();
+          alert("Payout transaction successful!");
+        } catch (error) {
+          console.error(error);
+          alert("Error during payout: " + error.message);
+        }
+      });
+    }
+    window.addEventListener("load", init);
+  </script>
+</body>
+</html>
