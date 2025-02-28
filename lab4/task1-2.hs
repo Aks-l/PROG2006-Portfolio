@@ -1,5 +1,3 @@
-
-
 mreverse :: [a] -> [a]
 mreverse [] = []
 mreverse (x:xs) = mreverse xs ++ [x]
@@ -32,3 +30,4 @@ for age in ages:
     if age>maxage: out=1
     elif age==maxage: out+=1
 -}
+
