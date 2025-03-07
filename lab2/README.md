@@ -1,13 +1,16 @@
-# Sample Hardhat Project
+# Lab 2 solution
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
 
-Try running some of the following tasks:
+index.html has buttons to trigger the solidity functions
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+gitlab.com is a mock version of gitlab to create the issues and merge requests to act upon in index.html
+
+features:
+creation of issues and merge requests work
+list issues and merge requests
+funding of issues
+
+issues:
+lists of issues are not shared across contracts, so voting and withdrawal does not exist
+
+n-out-of-m validation, auto merge and withdrawal implementd, but not tested due to issue.
