@@ -7,7 +7,7 @@ main = do
     age <- getLine
     putStrLn ("Hello, " ++ name ++ " in 10 years you will be " ++ show (read age + 10) ++ " years old.")
 
-    print $ addAge 10 (Age 20)
+    --print $ addAge 10 (Age 20)
 
 
 
