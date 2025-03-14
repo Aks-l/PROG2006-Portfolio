@@ -4,6 +4,7 @@
 -- >>> mhead1 "Hello"
 -- 'H'
 mhead1 :: [a] -> a
+mhead1 [] = error "empty list"
 mhead1 (a:_) = a
 
 -- | get head of a list
@@ -22,7 +23,8 @@ mhead2 a
 -- >>> mhead3 "Hello"
 -- 'H'
 mhead3 :: [a] -> a
-mhead3 a = if null a 
+mhead3 a = 
+    if null a 
     then error "empty list" 
     else a !! 0
 
