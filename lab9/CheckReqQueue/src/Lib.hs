@@ -17,6 +17,15 @@ import Control.Monad.IO.Class (liftIO)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Token (gitlabToken)
 
+-- For HTML generation
+import qualified Text.Blaze.Html5 as H
+import qualified Text.Blaze.Html5.Attributes as A
+import Servant.HTML.Blaze (HTML)
+import GHC.Stack (ccSrcSpan)
+
+
+-------- TYPE DEFINITIONS --------
+
 -- Author data type
 data Author =
     Author
@@ -78,34 +87,66 @@ type GitLabAPI =
              :> Header "PRIVATE-TOKEN" String
              :> Get '[JSON] [Issue]
 
+-------- API, SERVER AND APP --------
+type API = "issues" :> Get '[JSON] [Issue]
+      :<|> "queue"  :> Get '[HTML] H.Html
+      :<|> "static" :> Raw
+
+server :: Server API
+server = issueHandler 
+    :<|> queueHandler
+    :<|> serveDirectoryFileServer "static"
+
+app :: Application
+app = serve (Proxy :: Proxy API) server
+
+-------- HANDLERS --------
+
+issueHandler :: Handler [Issue]
+issueHandler = fetchIssues return
+
+queueHandler :: Handler H.Html
+queueHandler = fetchIssues (return . renderHtml)
+
+-------- FETCHING FUCNCTIONS --------
+
+fetchIssues :: ( [Issue] -> Handler a ) -> Handler a
+fetchIssues f = do
+  issuesResult <- liftIO getGitlabEntpoint
+  case issuesResult of
+    Left err     -> throwError err500 { errBody = L8.pack err }
+    Right issues -> f issues
+
 -- Generate the client function
 getGitLabIssues :: Int -> Maybe String -> Maybe String -> Maybe String -> ClientM [Issue]
 getGitLabIssues = client (Proxy :: Proxy GitLabAPI)
 
--- Our local API which serves issues
-type API = "issues" :> Get '[JSON] [Issue]
-
-server :: Server API
-server = issueHandler
-
-issueHandler :: Handler [Issue]
-issueHandler = do
-  issues <- liftIO getIssues
-  case issues of
-    Left err -> throwError err500 { errBody = L8.pack err }
-    Right is -> return is
-
--- Call the GitLab API using Servant.Client
-getIssues :: IO (Either String [Issue])
-getIssues = do
+-- Call the client function
+getGitlabEntpoint :: IO (Either String [Issue])
+getGitlabEntpoint = do
   manager <- newManager tlsManagerSettings 
   let baseUrl   = BaseUrl Https "git.gvk.idi.ntnu.no" 443 ""
       projectId = 5881
-      labels    = Just "Task Check Request"
+      labels    = Just "Announcement"
       state     = Just "opened"
       token     = Just gitlabToken
   res <- runClientM (getGitLabIssues projectId labels state token) (mkClientEnv manager baseUrl)
   return $ either (Left . show) Right res
 
-app :: Application
-app = serve (Proxy :: Proxy API) server
+-------- HTML FORMATTING FUNCTIONS --------
+
+renderHtml :: [Issue] -> H.Html
+renderHtml issues = H.docTypeHtml $ do
+    H.head $ H.title "Issue Queue"
+    H.body $ mapM_ issueToDiv issues
+    H.link H.! A.rel "stylesheet" H.! A.href "/static/style.css"
+
+issueToDiv :: Issue -> H.Html
+issueToDiv Issue { web_url = issueUrl, title = t, project_id = i, state = s, author = Author {username = uname} } = 
+  H.div $ do
+    H.h3 $ H.toHtml t
+    H.p $ H.toHtml $ "ID: " ++ show i
+    H.p $ H.toHtml $ "Author: " ++ uname
+    H.p $ H.toHtml $ "State: " ++ s
+    H.a H.! A.href (H.toValue issueUrl) $ "View Issue"
+

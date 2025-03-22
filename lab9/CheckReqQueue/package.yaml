@@ -32,6 +32,8 @@ dependencies:
 - wai 
 - http-types
 - bytestring
+- blaze-html
+- servant-blaze
 
 ghc-options:
 - -Wall

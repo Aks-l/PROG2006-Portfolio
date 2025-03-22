@@ -37,12 +37,14 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , blaze-html
     , bytestring
     , http-client
     , http-client-tls
     , http-conduit
     , http-types
     , servant
+    , servant-blaze
     , servant-client
     , servant-server
     , wai
@@ -62,12 +64,14 @@ executable CheckReqQueue-exe
       CheckReqQueue
     , aeson
     , base >=4.7 && <5
+    , blaze-html
     , bytestring
     , http-client
     , http-client-tls
     , http-conduit
     , http-types
     , servant
+    , servant-blaze
     , servant-client
     , servant-server
     , wai
@@ -88,12 +92,14 @@ test-suite CheckReqQueue-test
       CheckReqQueue
     , aeson
     , base >=4.7 && <5
+    , blaze-html
     , bytestring
     , http-client
     , http-client-tls
     , http-conduit
     , http-types
     , servant
+    , servant-blaze
     , servant-client
     , servant-server
     , wai
