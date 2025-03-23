@@ -6,11 +6,15 @@
 
 module Lib (app) where
 
+import Data.List (sortOn)
+import Data.Ord (Down(..))
+import Data.Time (UTCTime)
+import Data.Time.Format (defaultTimeLocale, parseTimeM, formatTime)
 import Network.Wai (Application)
 import Servant
 import Servant.Client
 import Data.Aeson (FromJSON, ToJSON, parseJSON, withObject, (.:), (.:?))
-import GHC.Generics (Generic)
+import GHC.Generics (Generic)    
 import Network.HTTP.Client (newManager, defaultManagerSettings)
 import qualified Data.ByteString.Lazy.Char8 as L8
 import Control.Monad.IO.Class (liftIO)
@@ -78,15 +82,6 @@ instance FromJSON Issue where
 
 instance ToJSON Issue
 
--- Define the GitLab API using Servant
-type GitLabAPI =
-       "api" :> "v4" :> "projects" :> Capture "projectId" Int
-             :> "issues"
-             :> QueryParam "labels" String
-             :> QueryParam "state" String
-             :> Header "PRIVATE-TOKEN" String
-             :> Get '[JSON] [Issue]
-
 -------- API, SERVER AND APP --------
 type API = "issues" :> Get '[JSON] [Issue]
       :<|> "queue"  :> Get '[HTML] H.Html
@@ -109,7 +104,16 @@ queueHandler :: Handler H.Html
 queueHandler = fetchIssues (return . renderHtml)
 
 -------- FETCHING FUCNCTIONS --------
+-- Define the GitLab API
+type GitLabAPI =
+       "api" :> "v4" :> "projects" :> Capture "projectId" Int
+             :> "issues"
+             :> QueryParam "labels" String
+             :> QueryParam "state" String
+             :> Header "PRIVATE-TOKEN" String
+             :> Get '[JSON] [Issue]
 
+-- Fetch issues from GitLab
 fetchIssues :: ( [Issue] -> Handler a ) -> Handler a
 fetchIssues f = do
   issuesResult <- liftIO getGitlabEntpoint
@@ -137,16 +141,23 @@ getGitlabEntpoint = do
 
 renderHtml :: [Issue] -> H.Html
 renderHtml issues = H.docTypeHtml $ do
-    H.head $ H.title "Issue Queue"
-    H.body $ mapM_ issueToDiv issues
-    H.link H.! A.rel "stylesheet" H.! A.href "/static/style.css"
+    H.head $ do
+        H.title "Issue Queue"
+        H.link H.! A.rel "stylesheet" H.! A.href "/static/style.css"
+    H.body $ mconcat $ zipWith issueToDiv [1..] (sortOn created_at issues)
 
-issueToDiv :: Issue -> H.Html
-issueToDiv Issue { web_url = issueUrl, title = t, project_id = i, state = s, author = Author {username = uname} } = 
-  H.div $ do
-    H.h3 $ H.toHtml t
-    H.p $ H.toHtml $ "ID: " ++ show i
-    H.p $ H.toHtml $ "Author: " ++ uname
-    H.p $ H.toHtml $ "State: " ++ s
-    H.a H.! A.href (H.toValue issueUrl) $ "View Issue"
+issueToDiv :: Int -> Issue -> H.Html
+issueToDiv idx Issue { web_url = issueUrl, title = t, iid = i, created_at = time, author = Author {username = uname, name = realname}  } = 
+    H.div $ do
+        H.h3 $ H.toHtml t
+        H.p $ H.toHtml $ "No. in Queue: " ++ show idx
+        H.p $ H.toHtml $ "ID: " ++ show i
+        H.p $ H.toHtml $ "Author: " ++ realname ++ " (" ++ uname ++ ")"
+        H.p $ H.toHtml $ "Created at: " ++ toReadableTime time
+        H.a H.! A.href (H.toValue issueUrl) $ "View Issue"
 
+toReadableTime :: String -> String
+toReadableTime timeISO8601 = 
+    case (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" timeISO8601 :: Maybe UTCTime) of
+        Just utcTime -> formatTime defaultTimeLocale "%d %B %Y, %H:%M" utcTime
+        Nothing      -> timeISO8601

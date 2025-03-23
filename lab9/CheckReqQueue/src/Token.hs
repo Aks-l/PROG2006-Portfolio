@@ -1,4 +1,4 @@
 module Token (gitlabToken) where
 
 gitlabToken :: String
-gitlabToken = "TOKEN HERE"
+gitlabToken = "TOKEN HERE" 
