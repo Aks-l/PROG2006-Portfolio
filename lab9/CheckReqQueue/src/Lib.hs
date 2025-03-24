@@ -142,22 +142,26 @@ getGitlabEntpoint = do
 renderHtml :: [Issue] -> H.Html
 renderHtml issues = H.docTypeHtml $ do
     H.head $ do
-        H.title "Issue Queue"
+        H.title "Prog2006 Issue Queue"
         H.link H.! A.rel "stylesheet" H.! A.href "/static/style.css"
-    H.body $ mconcat $ zipWith issueToDiv [1..] (sortOn created_at issues)
+    H.body $ do
+      H.h1 H.! A.class_ "header" $ "Prog2006 Issue Queue"
+      mconcat $ zipWith issueToDiv [1..] (sortOn created_at issues)
 
 issueToDiv :: Int -> Issue -> H.Html
-issueToDiv idx Issue { web_url = issueUrl, title = t, iid = i, created_at = time, author = Author {username = uname, name = realname}  } = 
-    H.div $ do
-        H.h3 $ H.toHtml t
-        H.p $ H.toHtml $ "No. in Queue: " ++ show idx
-        H.p $ H.toHtml $ "ID: " ++ show i
-        H.p $ H.toHtml $ "Author: " ++ realname ++ " (" ++ uname ++ ")"
-        H.p $ H.toHtml $ "Created at: " ++ toReadableTime time
-        H.a H.! A.href (H.toValue issueUrl) $ "View Issue"
-
+issueToDiv idx Issue { web_url = issueUrl, title = t, iid = i, author = Author {name = realname}  } = 
+  H.div H.! A.class_ "parent" $ do
+    H.a H.! A.class_ "title" H.! A.href (H.toValue issueUrl) $ H.toHtml t
+    H.div H.! A.class_ "staticid" $ "Issue ID"
+    H.div H.! A.class_ "idnumber" $ H.toHtml (show i)
+    H.div H.! A.class_ "author" $ H.toHtml realname 
+    H.div H.! A.class_ "staticqueue" $ "Queue no"
+    H.div H.! A.class_ "queuenumber" $ H.toHtml (show idx)
+  
+{-
 toReadableTime :: String -> String
 toReadableTime timeISO8601 = 
     case (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H:%M:%S%QZ" timeISO8601 :: Maybe UTCTime) of
         Just utcTime -> formatTime defaultTimeLocale "%d %B %Y, %H:%M" utcTime
         Nothing      -> timeISO8601
+-}
