@@ -3,6 +3,7 @@
 module Lib where
 
 import           Control.Monad        (forM_)
+import           Data.Char            (ord, chr)
 import           Data.Map.Strict      (Map)
 import qualified Data.Map.Strict      as Map
 import           Data.Set             (Set)
@@ -10,7 +11,8 @@ import qualified Data.Set             as Set
 import           System.Environment   (getArgs)
 import           System.IO            (hFlush, stdout)
 import           Text.Read            (readMaybe)
-
+import           Data.Time.Clock.POSIX (getPOSIXTime)
+import Text.Printf (IsChar(toChar))
 
 -- | Board coordinates 0–(size-1)
 type Point = (Int,Int)
@@ -27,7 +29,12 @@ data Game = Game
   , history   :: [Map Point Color]   -- for simple ko
   , passCount :: Int
   , gameSize  :: Int
+  , gameTime  :: String
   }
+
+-- | Get the current Unix time in seconds for file names
+getUnixTime :: IO String
+getUnixTime = show . round <$> getPOSIXTime
 
 -- | Find adjacent neighbor points
 neighbors :: Int -> Point -> [Point]
@@ -123,6 +130,7 @@ apply (Play p) g
                     , history   = b : history g
                     , passCount = 0
                     , gameSize  = sz
+                    , gameTime  = gameTime g
                     }
 
 -- | ASCII stones: ○=Black, ●=White, +=empty
@@ -147,7 +155,7 @@ printBoard g = do
     putStr $ (if x < 10 then "  " else " ") ++ show x
   putStrLn ""
 
--- | Read a move from stdin with dynamic bounds
+-- | Get a move from the user within the size of the board
 getMove :: Color -> Game -> IO Move
 getMove col g = do
   let sz = gameSize g
@@ -176,7 +184,9 @@ gameLoop g = do
       mv <- getMove (toPlay g) g
       case apply mv g of
         Nothing -> putStrLn "Illegal move!" >> gameLoop g
-        Just g' -> gameLoop g'
+        Just g' -> do 
+          updateGameFile (gameTime g) mv (toPlay g)
+          gameLoop g'
 
 -- | Entry point
 gameEntry :: IO ()
@@ -190,14 +200,17 @@ gameEntry = do
         Nothing   -> putStrLn "Invalid SGF file" >> return ()
     [] -> do
       putStrLn "Enter board size (1-19):"
-      input <- getLine
-      case readMaybe input of
+      boardSize <- getLine
+      boardTime <- getUnixTime
+      createGameFile boardSize boardTime
+      case readMaybe boardSize of
         Just sz | sz > 0 && sz <= 19 ->
           gameLoop Game { board     = Map.empty
                         , toPlay    = Black
                         , history   = []
                         , passCount = 0
                         , gameSize  = sz
+                        , gameTime  = boardTime
                         }
         _ -> putStrLn "Invalid size; enter a number 1-19." >> gameEntry
 
@@ -206,9 +219,42 @@ endGame :: Game -> IO ()
 endGame g = do
   let blackScore = Map.size $ Map.filter (== Black) (board g)
       whiteScore = Map.size $ Map.filter (== White) (board g)
+  endGameFile (gameTime g)
   putStrLn "Game ended!"
   putStrLn $ "Black stones: " ++ show blackScore
   putStrLn $ "White stones: " ++ show whiteScore
+
+createGameFile :: String -> String -> IO ()
+createGameFile boardSize time = do
+  let fileName = "game_" ++ time ++ ".sgf"
+  writeFile fileName ("(;FF[4]CA[UTF-8]GM[1]SZ[" ++ boardSize ++ "]\n")
+  putStrLn $ "Game file created: " ++ fileName
+
+updateGameFile :: String -> Move -> Color -> IO ()
+updateGameFile gameTime Pass _ = do
+  pure ()
+updateGameFile gameTime move col = do
+  let color = case col of
+               Black -> "B"
+               White -> "W"
+      m = gameNotation move
+      fileName = "game_" ++ gameTime ++ ".sgf"
+  
+  appendFile fileName $ ";" ++ color ++ "[" ++ m ++ "]\n" 
+
+endGameFile :: String -> IO ()
+endGameFile gameTime = do
+  let fileName = "game_" ++ gameTime ++ ".sgf"
+  appendFile fileName ")"
+
+gameNotation :: Move -> String
+gameNotation (Play (x,y)) = [toLetter x, toLetter y] 
+
+toLetter :: Int -> Char
+toLetter n = chr (ord 'a' + n)
+
+toInt :: Char -> Int
+toInt c = ord c - ord 'a'
 
 -- | SGF parsing placeholder
 parseSGF :: String -> Maybe Game
