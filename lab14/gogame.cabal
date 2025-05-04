@@ -25,7 +25,10 @@ source-repository head
 
 library
   exposed-modules:
+      FileFunctions
+      GameCore
       Lib
+      Types
   other-modules:
       Paths_gogame
   autogen-modules:
@@ -36,6 +39,8 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , regex-tdfa >=1.2
+    , split >=0.2
     , time
   default-language: Haskell2010
 
@@ -52,6 +57,8 @@ executable gogame-exe
       base >=4.7 && <5
     , containers
     , gogame
+    , regex-tdfa >=1.2
+    , split >=0.2
     , time
   default-language: Haskell2010
 
@@ -69,5 +76,7 @@ test-suite gogame-test
       base >=4.7 && <5
     , containers
     , gogame
+    , regex-tdfa >=1.2
+    , split >=0.2
     , time
   default-language: Haskell2010
