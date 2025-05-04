@@ -5,6 +5,7 @@ module GameCore
   , liberties
   , opp
   , neighbors
+  , getBotMove
   ) where
 
 import           Types
@@ -13,6 +14,8 @@ import qualified Data.Map.Strict as Map
 import           Data.Set        (Set)
 import qualified Data.Set        as Set
 import           Data.Char            (ord, chr)
+import           System.Random (randomRIO)
+import Text.ParserCombinators.ReadP (get)
 
 
 
@@ -112,4 +115,31 @@ apply (Play p) g
                     , passCount = 0
                     , gameSize  = sz
                     , gameFileName  = gameFileName g
+                    , bot       = bot g
                     }
+    
+
+getBotMove :: Color -> Game -> IO Move
+getBotMove col g = do
+    let legalMoves = [(x,y) | x <- [0..gameSize g - 1], y <- [0..gameSize g - 1], legal (x,y) g]
+    case legalMoves of
+        [] -> do
+            putStrLn "Bot Play: Pass"
+            return Pass
+        _  -> do
+            r <- randomRIO (0.0, 1.0) :: IO Double
+            if r > 0
+              then do
+                i <- randomRIO (0, length legalMoves - 1)
+                putStrLn $ "Bot Play: " ++ show (legalMoves !! i)
+                return $ Play (legalMoves !! i)
+              else
+                getGoodMove legalMoves
+
+
+getGoodMove :: [(Int,Int)] -> IO Move
+getGoodMove ms = do
+    let best = head ms
+    putStrLn $ "Bot Play: " ++ show best
+    return (Play best)
+    

@@ -25,6 +25,7 @@ dependencies:
 - time
 - regex-tdfa >= 1.2
 - split >= 0.2
+- random >= 1.2
 
 
 

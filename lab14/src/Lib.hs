@@ -16,7 +16,7 @@ import           Control.Monad        (forM_)
 import Text.Printf (IsChar(toChar))
 import FileFunctions (createGameFile, updateGameFile, parseSGF)
 import Types (Game(..), Move(..), Color(..), Point)
-import GameCore (apply)
+import GameCore (apply, getBotMove)
 
 
 -- | Get the current Unix time in seconds for file names
@@ -68,16 +68,16 @@ getBotColor :: IO (Maybe Color)
 getBotColor =
   putStrLn "Play against the computer? [Y/n]" >>
   getLine >>= \botResp ->
-    if botResp `elem` ["N","n"]
-      then return Nothing
-      else
-        putStrLn "Play as color: [B]lack or [W]hite?" >>
-        getLine >>= \colResp ->
-          case colResp of
-            "W" -> return (Just White)
-            "B" -> return (Just Black)
-            _   -> putStrLn "Invalid color, defaulting to Black." >>
-                   return (Just Black)
+  if botResp `elem` ["N","n"]
+    then return Nothing
+    else
+      putStrLn "Play as color: [B]lack or [W]hite?" >>
+      getLine >>= \colResp ->
+        case colResp of
+          "W" -> return (Just Black)
+          "B" -> return (Just White)
+          _   -> putStrLn "Invalid color, defaulting to Black." >>
+                  return (Just White)
 
 -- | Main game loop
 gameLoop :: Game -> IO ()
@@ -87,10 +87,14 @@ gameLoop g = do
     then endGame g
     else do
       printBoard g
-      mv <- getMove (toPlay g) g
+
+      mv <- case bot g of
+        Just botCol | botCol == toPlay g -> getBotMove botCol g
+        _ -> getMove (toPlay g) g
+
       case apply mv g of
         Nothing -> putStrLn "Illegal move!" >> gameLoop g
-        Just g' -> do 
+        Just g' -> do
           updateGameFile (gameFileName g) mv (toPlay g)
           gameLoop g'
 
