@@ -1,6 +1,6 @@
 module Types where
 
-import          Data.Map.Strict      (Map)
+import          Data.Map.Strict      (Map) 
 
 type Point = (Int,Int)
 
@@ -17,4 +17,5 @@ data Game = Game
   , passCount :: Int
   , gameSize  :: Int
   , gameFileName  :: String
+  , bot :: Maybe Color
   }

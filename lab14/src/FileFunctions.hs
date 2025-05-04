@@ -66,7 +66,8 @@ parseSGF content filePath = do
   -- extract the one and only capture group
   [[_, s]] <- pure sizeMatches
   let size    = read s
-      fileName = take (length filePath - 4) filePath
+  if size < 1 || size > 19 then Nothing else Just ()
+  let fileName = take (length filePath - 4) filePath
       tempGame = Game
         { board     = Map.empty
         , toPlay    = Black
@@ -91,5 +92,5 @@ parseSGF content filePath = do
          _ ->
            Just g {
               toPlay    = if toPlay g == Black then White else Black
-           }   -- ignore anything that doesn’t look like B[aa], W[dp], etc.
+           }
 

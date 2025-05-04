@@ -63,6 +63,22 @@ getMove col g = do
   where
     invalid = putStrLn "Invalid input" >> getMove col g
 
+    -- | Ask whether to play vs. computer, and if so which color.
+getBotColor :: IO (Maybe Color)
+getBotColor =
+  putStrLn "Play against the computer? [Y/n]" >>
+  getLine >>= \botResp ->
+    if botResp `elem` ["N","n"]
+      then return Nothing
+      else
+        putStrLn "Play as color: [B]lack or [W]hite?" >>
+        getLine >>= \colResp ->
+          case colResp of
+            "W" -> return (Just White)
+            "B" -> return (Just Black)
+            _   -> putStrLn "Invalid color, defaulting to Black." >>
+                   return (Just Black)
+
 -- | Main game loop
 gameLoop :: Game -> IO ()
 gameLoop g = do
@@ -91,19 +107,23 @@ gameEntry = do
     [] -> do
       putStrLn "Enter board size (1-19):"
       boardSize <- getLine
-      boardTime <- getUnixTime
-      createGameFile boardSize boardTime
       case readMaybe boardSize of
         Just sz | sz > 0 && sz <= 19 ->
-          gameLoop Game { board     = Map.empty
-                        , toPlay    = Black
-                        , history   = []
-                        , passCount = 0
-                        , gameSize  = sz
-                        , gameFileName  = boardTime
-                        }
-        _ -> putStrLn "Invalid size; enter a number 1-19." >> gameEntry
-
+          getUnixTime   >>= \boardTime ->
+          getBotColor   >>= \bot ->
+          createGameFile boardSize boardTime >>
+          gameLoop Game
+            { board        = Map.empty
+            , toPlay       = Black
+            , history      = []
+            , passCount    = 0
+            , gameSize     = sz
+            , gameFileName = boardTime
+            , bot          = bot
+            }
+        _ -> putStrLn "Invalid size, must be between 1 and 19." >>
+             gameEntry
+          
 -- | End game
 endGame :: Game -> IO ()
 endGame g = do
@@ -113,3 +133,4 @@ endGame g = do
   putStrLn $ "Black stones: " ++ show blackScore
   putStrLn $ "White stones: " ++ show whiteScore
 
+ 
