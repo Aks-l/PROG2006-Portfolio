@@ -17,6 +17,8 @@ import qualified Data.Set        as Set
 import           Data.Char            (ord, chr)
 import           System.Random (randomRIO)
 import Text.ParserCombinators.ReadP (get)
+import           Data.List (maximumBy)
+import           Data.Monoid ((<>))
 
 
 
@@ -126,24 +128,6 @@ apply (Play p) g
                     }
     
 
-getBotMove :: Color -> Game -> IO Move
-getBotMove col g = do
-    let legalMoves = [(x,y) | x <- [0..gameSize g - 1], y <- [0..gameSize g - 1], legal (x,y) g]
-    case legalMoves of
-        [] -> do
-            putStrLn "Bot Play: Pass"
-            return Pass
-        _  -> do
-            r <- randomRIO (0.0, 1.0) :: IO Double
-            if r > 0
-              then do
-                i <- randomRIO (0, length legalMoves - 1)
-                putStrLn $ "Bot Play: " ++ show (legalMoves !! i)
-                return $ Play (legalMoves !! i)
-              else
-                getGoodMove legalMoves
-
-
 getGoodMove :: [(Int,Int)] -> IO Move
 getGoodMove ms = do
     let best = head ms
@@ -200,3 +184,67 @@ countTerritory size board = go Set.empty allEmpties (0,0)
           let region' = Set.insert q region
               qs'     = neighbors size q ++ qs
           in floodEmpty region' qs'
+
+
+getBotMove :: Color -> Game -> IO Move
+getBotMove col g =
+  let sz       = gameSize g
+      b        = board g
+      (tB, tW) = countTerritory sz b
+      finalB   = tB + bCaptured g
+      finalW   = tW + wCaptured g
+      legalPts = [ p | p <- allPoints sz, legal p g ]
+  in
+  if passCount g == 1 && wins col (finalB, finalW)
+    then return Pass
+    else chooseRegularMove sz col b g legalPts
+  where
+    chooseRegularMove sz col b g moves = do
+      case moves of
+        [] -> return Pass
+        _  -> do
+          r <- randomRIO (0.0,1.0 :: Double)
+          if r < 0.2
+            then do idx <- randomRIO (0, length moves - 1)
+                    return $ Play (moves !! idx)
+            else return $ Play (selectBestMove sz col b g moves)
+
+    wins Black (bScore, wScore) = bScore > wScore
+    wins White (bScore, wScore) = wScore > bScore
+
+    allPoints n = [ (x,y) | x <- [0..n-1], y <- [0..n-1] ]
+
+-- | Pick the move that maximizes liberties and minimizes group count
+selectBestMove :: Int -> Color -> Map Point Color -> Game -> [Point] -> Point
+selectBestMove size col boardMap g moves =
+  fst $ maximumBy compareScore
+    [ (p, scoreAfter p) | p <- moves ]
+  where
+    compareScore (_, (lib1, grp1)) (_, (lib2, grp2)) =
+      compare lib1 lib2 `mappend` compare grp2 grp1
+
+    scoreAfter p =
+      case apply (Play p) g of
+        Nothing -> (minBound, maxBound)
+        Just g' -> evaluateBoard size col (board g')
+
+-- | Evaluate board for a color: (total liberties, number of groups)
+evaluateBoard :: Int -> Color -> Map Point Color -> (Int, Int)
+evaluateBoard size col boardMap =
+  let groups = getGroups size col boardMap
+      libSum = sum [ Set.size (liberties size grp boardMap) | grp <- groups ]
+      grpCnt = length groups
+  in (libSum, grpCnt)
+
+-- | Get all connected groups of a given color
+getGroups :: Int -> Color -> Map Point Color -> [Set Point]
+getGroups size col boardMap = go Set.empty stones []
+  where
+    stones = [ p | (p,c) <- Map.toList boardMap, c == col ]
+    go _    []     acc = acc
+    go seen (p:ps) acc
+      | p `Set.member` seen = go seen ps acc
+      | otherwise           =
+          let grp   = floodFill size p boardMap
+              seen' = seen `Set.union` grp
+          in go seen' ps (grp:acc)

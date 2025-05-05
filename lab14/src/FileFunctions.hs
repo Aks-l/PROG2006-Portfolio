@@ -56,7 +56,7 @@ toInt c = ord c - ord 'a'
 parseSGF :: String -> String -> Maybe Game
 parseSGF content filePath = do
   -- split off the header “(;…” and the trailing “)”
-  let content' = (init . filter (/= '\r')) content
+  let content' = (init . filter (\c -> c /= '\r' && c /= ' ')) content
       moves = drop 1 (splitOn ";" content') :: [String]
 
       -- force the regex to be String->[[String]]
