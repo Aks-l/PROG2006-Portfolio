@@ -70,11 +70,14 @@ parseSGF content filePath = do
   let fileName = take (length filePath - 4) filePath
       tempGame = Game
         { board     = Map.empty
-        , toPlay    = Black
+        , toPlay    = White
         , history   = []
         , passCount = 0
         , gameSize  = size
         , gameFileName  = fileName
+        , bot      = Nothing
+        , bCaptured = 0
+        , wCaptured = 0
         }
 
   -- foldM steps through each token
@@ -89,7 +92,7 @@ parseSGF content filePath = do
          -- each of col, x, y is a [Char], but we pattern‐match to single‐char strings
          [[_, col, [cx], [cy]]] ->
            apply (Play (toInt cx, toInt cy)) g
-         _ ->
+         _ ->  
            Just g {
               toPlay    = if toPlay g == Black then White else Black
            }

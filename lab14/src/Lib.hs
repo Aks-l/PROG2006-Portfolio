@@ -16,7 +16,7 @@ import           Control.Monad        (forM_)
 import Text.Printf (IsChar(toChar))
 import FileFunctions (createGameFile, updateGameFile, parseSGF)
 import Types (Game(..), Move(..), Color(..), Point)
-import GameCore (apply, getBotMove)
+import GameCore (apply, getBotMove, countTerritory)
 
 
 -- | Get the current Unix time in seconds for file names
@@ -124,6 +124,8 @@ gameEntry = do
             , gameSize     = sz
             , gameFileName = boardTime
             , bot          = bot
+            , bCaptured    = 0
+            , wCaptured    = 0
             }
         _ -> putStrLn "Invalid size, must be between 1 and 19." >>
              gameEntry
@@ -131,10 +133,10 @@ gameEntry = do
 -- | End game
 endGame :: Game -> IO ()
 endGame g = do
-  let blackScore = Map.size $ Map.filter (== Black) (board g)
-      whiteScore = Map.size $ Map.filter (== White) (board g)
+  let (bTerritory, wTerritory) = countTerritory (gameSize g) (board g)
   putStrLn "Game ended!"
-  putStrLn $ "Black stones: " ++ show blackScore
-  putStrLn $ "White stones: " ++ show whiteScore
+  putStrLn $ "Black score: " ++ show bTerritory ++ " + " ++ show (bCaptured g) ++ " = " ++ show (bTerritory + bCaptured g)
+  putStrLn $ "White score: " ++ show wTerritory ++ " + " ++ show (wCaptured g) ++ " = " ++ show (wTerritory + wCaptured g)
+  putStrLn $ "Winner: " ++ (if bTerritory + bCaptured g > wTerritory + wCaptured g then "Black" else "White")
 
  

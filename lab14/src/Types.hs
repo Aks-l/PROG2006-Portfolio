@@ -1,11 +1,12 @@
 module Types where
 
 import          Data.Map.Strict      (Map) 
+import Data.Ord (Ord)
 
 type Point = (Int,Int)
 
 data Color = Black | White
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 data Move = Play Point | Pass
   deriving (Eq, Show)
@@ -18,4 +19,6 @@ data Game = Game
   , gameSize  :: Int
   , gameFileName  :: String
   , bot :: Maybe Color
+  , bCaptured :: Int
+  , wCaptured :: Int
   }

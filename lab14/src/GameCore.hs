@@ -6,6 +6,7 @@ module GameCore
   , opp
   , neighbors
   , getBotMove
+  , countTerritory
   ) where
 
 import           Types
@@ -116,6 +117,12 @@ apply (Play p) g
                     , gameSize  = sz
                     , gameFileName  = gameFileName g
                     , bot       = bot g
+                    , bCaptured  = if col == Black
+                        then bCaptured g + Set.size dead
+                        else bCaptured g
+                    , wCaptured  = if col == White
+                        then wCaptured g + Set.size dead
+                        else wCaptured g
                     }
     
 
@@ -143,3 +150,53 @@ getGoodMove ms = do
     putStrLn $ "Bot Play: " ++ show best
     return (Play best)
     
+countTerritory :: Int -> Map Point Color -> (Int,Int)
+countTerritory size board = go Set.empty allEmpties (0,0)
+  where
+    -- every point in the NxN grid that has no stone
+    allEmpties :: [Point]
+    allEmpties =
+      [ (x,y)
+      | x <- [0..size-1]
+      , y <- [0..size-1]
+      , Map.notMember (x,y) board
+      ]
+
+    go :: Set Point -> [Point] -> (Int,Int) -> (Int,Int)
+    go _    []     acc = acc
+    go seen (p:ps) acc
+      | p `Set.member` seen = go seen ps acc
+      | otherwise =
+          let region    = floodEmpty Set.empty [p]
+              seen'     = seen `Set.union` region
+
+              -- collect all stone‐colors adjacent to this empty region
+              borders   = Set.fromList
+                        [ c
+                        | q <- Set.toList region
+                        , n <- neighbors size q
+                        , Just c <- [Map.lookup n board]
+                        ]
+              
+              owner     = case Set.toList borders of
+                            [Black] -> Just Black
+                            [White] -> Just White
+                            _       -> Nothing
+
+              szRegion  = Set.size region
+              acc'      = case owner of
+                            Just Black -> (fst acc + szRegion, snd acc)
+                            Just White -> (fst acc, snd acc + szRegion)
+                            Nothing    -> acc
+          in go seen' ps acc'
+
+    -- flood‐fill starting on empty points (i.e. Map.notMember)
+    floodEmpty :: Set Point -> [Point] -> Set Point
+    floodEmpty region []     = region
+    floodEmpty region (q:qs)
+      | q `Set.member` region       = floodEmpty region qs
+      | Map.member q board          = floodEmpty region qs
+      | otherwise =
+          let region' = Set.insert q region
+              qs'     = neighbors size q ++ qs
+          in floodEmpty region' qs'
