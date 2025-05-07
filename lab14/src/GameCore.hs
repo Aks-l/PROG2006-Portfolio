@@ -127,13 +127,6 @@ apply (Play p) g
                         else wCaptured g
                     }
     
-
-getGoodMove :: [(Int,Int)] -> IO Move
-getGoodMove ms = do
-    let best = head ms
-    putStrLn $ "Bot Play: " ++ show best
-    return (Play best)
-    
 countTerritory :: Int -> Map Point Color -> (Int,Int)
 countTerritory size board = go Set.empty allEmpties (0,0)
   where
@@ -201,13 +194,19 @@ getBotMove col g =
   where
     chooseRegularMove sz col b g moves = do
       case moves of
-        [] -> return Pass
+        [] -> do
+            putStrLn "Bot: Pass"
+            return Pass
         _  -> do
           r <- randomRIO (0.0,1.0 :: Double)
           if r < 0.2
             then do idx <- randomRIO (0, length moves - 1)
+                    putStrLn $ "Bot: " ++ show (moves !! idx)
                     return $ Play (moves !! idx)
-            else return $ Play (selectBestMove sz col b g moves)
+            else do
+                let move = selectBestMove sz col b g moves
+                putStrLn $ "Bot: " ++ show move
+                return $ Play move
 
     wins Black (bScore, wScore) = bScore > wScore
     wins White (bScore, wScore) = wScore > bScore
