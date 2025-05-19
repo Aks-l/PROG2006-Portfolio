@@ -53,6 +53,9 @@ getMove col g = do
   hFlush stdout
   line <- getLine
   case words line of
+    ["q"] -> do
+      enterInteractive g (length (history g) -1)
+      getMove col g  
     ["pass"] -> return Pass
     [sx, sy] ->
       case (readMaybe sx, readMaybe sy) of
@@ -62,6 +65,22 @@ getMove col g = do
     _ -> invalid
   where
     invalid = putStrLn "Invalid input" >> getMove col g
+  
+enterInteractive :: Game -> Int -> IO ()
+enterInteractive game idx = do
+  let maxIdx = length (history game) - 1
+      validIdx = max 0 (min idx maxIdx)
+      boardAt = reverse (history game) !! validIdx
+  putStrLn $ "Move " ++ show validIdx ++ "/" ++ show maxIdx
+  printBoard game { board = boardAt }
+  putStrLn "Interactive mode. Type 'q' to quit, 'p' for previous, 'n' for next."
+  command <- getLine
+  case command of
+    "q" -> return ()
+    "p" -> enterInteractive game (validIdx - 1)
+    "n" -> enterInteractive game (validIdx + 1)
+    _   -> putStrLn "Invalid command" >> enterInteractive game validIdx
+
 
     -- | Ask whether to play vs. computer, and if so which color.
 getBotColor :: IO (Maybe Color)
