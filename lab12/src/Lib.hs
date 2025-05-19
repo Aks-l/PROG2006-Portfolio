@@ -1,6 +1,12 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+
 module Lib
   ( entry
+  , eval
+  , initEnv
+  , tokenize
+  , parseTokens
   ) where
 
 import qualified Data.Map as M
@@ -12,6 +18,7 @@ import           Data.List  (dropWhileEnd)
 
 import Types      (Value(..), Token(..), Stack, Env)
 import           Data.Either (Either(..))
+import GHC.Num (Num(fromInteger))
 
 -- | Entry point: start REPL with an initial stack
 entry :: Stack -> IO ()
@@ -33,20 +40,34 @@ repl env stk = do
         Left err     -> putStrLn ("Error: " ++ err) >> repl env stk
         Right (e,s') -> print s' >> repl e s'
 
--- | Simple tokenizer splitting on whitespace
 tokenize :: String -> Either String [String]
 tokenize = go [] . dropWhile isSpace
   where
     go acc [] = Right (reverse acc)
-    go acc ('"':cs) =
-      case break (=='"') cs of
-        (str, '"':rest) ->
-          let lit = '"':str ++ "\""
-          in go (lit:acc) (dropWhile isSpace rest)
-        _ -> Left "Unterminated string literal"
+
+    -- 1) Start of a string: either \" or "
+    go acc ('\\':'"':cs) = parseLit acc cs
+    go acc ('"':cs)      = parseLit acc cs
+
+    -- 2) Anything else
     go acc cs =
       let (tok, rest) = break isSpace cs
       in go (tok:acc) (dropWhile isSpace rest)
+
+    -- Helper to pull out up to the next " and handle a trailing backslash
+    parseLit acc cs =
+      case break (=='"') cs of
+        (raw, '"':rest) ->
+          let -- if the raw content ends in a backslash, strip it off
+              raw' = if not (null raw) && last raw == '\\'
+                       then init raw
+                       else raw
+              -- now drop leading spaces inside the literal
+              body = dropWhile isSpace raw'
+              lit  = '"' : body ++ "\""
+          in go (lit : acc) (dropWhile isSpace rest)
+        _ -> Left "Unterminated string literal"
+
 
 trim :: String -> String
 trim = dropWhileEnd isSpace . dropWhile isSpace
@@ -140,6 +161,13 @@ loopList env inc check v0 = go v0 where
 
 -- | Eager pattern matching, returns new env/stack or error
 applyEager env stk = case stk of
+  VList xs : rest
+    | let xs' = map (\v -> case v of
+                              VString s | Just v' <- M.lookup s env -> v'
+                              other                                  -> other
+                          ) xs
+    , xs' /= xs
+    -> Right (env, VList xs' : rest)
   -- variable lookup
   VString name : rest
     | Just (VQuote body) <- M.lookup name env ->
@@ -148,6 +176,7 @@ applyEager env stk = case stk of
           Right (e',s') -> Right (e', s')
   VString name : rest
     | Just v <- M.lookup name env -> Right (env, v : rest)
+
 
   -- list‐based loops
   VQuote inc : VQuote check : VString "loop" : start@(VList _) : rest ->
@@ -168,25 +197,41 @@ applyEager env stk = case stk of
   VQuote check : VQuote inc : VString "loop" : start : rest ->
     runScalarCheck start [] check inc rest
 
-  -- times: repeat a named function (builtin or user‐defined)
-  VString fn : VString "times" : VInt n : rest
-    | n <  0   -> Left "times: negative"
-    | otherwise -> Right (goTimes n env rest (VQuote [TSym fn]))
-
-  -- times: quoted block
   VQuote body : VString "times" : VInt n : rest
-    | n <  0   -> Left "times: negative"
-    | otherwise -> Right (goQuoteTimes n env rest body)
+    | n < 0    -> Left "times: negative"
+    | otherwise-> Right (goQuoteTimes n env rest body)
 
-  -- times: literal value (fallback—just repeats the value itself)
+  -- times: repeat any value v, n times
   v : VString "times" : VInt n : rest
-    | n <  0   -> Left "times: negative"
-    | n == 0   -> Right (env, rest)
-    | otherwise -> Right (env, v : VString "times" : VInt (n-1) : rest)
+    | n < 0    -> Left "times: negative"
+    | otherwise-> Right (env, replicate (fromInteger n) v ++ rest)
 
   -- each
   VQuote body : VString "each" : VList xs : rest ->
     let goElem x = case eval env [x] body of Right (_, y:_) -> y; _ -> error "each"
+    in Right (env, map goElem (reverse xs) ++ rest)
+
+  VString fn : VString "each" : VList xs : rest
+    | M.member fn builtinsMap
+      || case M.lookup fn env of Just (VQuote _) -> True; _ -> False
+    ->
+      let
+        -- pick up the quoted body if present, otherwise call the bare fn
+        tokens = case M.lookup fn env of
+                   Just (VQuote body) -> body
+                   _                  -> [TSym fn]
+
+        goElem x = case eval env [x] tokens of
+                     Right (_, y:_) -> y
+                     Left err       -> error $ "each: " ++ err
+      in
+        Right (env, map goElem (reverse xs) ++ rest)
+
+  -- your existing quoted‐`each` clause
+  VQuote body : VString "each" : VList xs : rest ->
+    let goElem x = case eval env [x] body of
+                     Right (_, y:_) -> y
+                     _              -> error "each"
     in Right (env, map goElem (reverse xs) ++ rest)
 
   -- map
@@ -195,6 +240,16 @@ applyEager env stk = case stk of
     in Right (env, VList (map goElem xs) : rest)
 
   -- foldl
+
+  VString fn : VString "foldl" : acc : VList xs : rest
+    | M.member fn builtinsMap || M.member fn env ->
+        let body = [TSym fn]
+            f a x = case eval env [x,a] body of
+                      Right (_, y:_) -> y
+                      _              -> error "foldl"
+            acc' = foldl f acc xs
+        in Right (env, acc' : rest)
+
   VQuote body : VString "foldl" : acc : VList xs : rest ->
     let f a x = case eval env [x,a] body of Right (_, y:_) -> y; _ -> error "foldl"
         acc' = foldl f acc xs
@@ -230,7 +285,7 @@ applyEager env stk = case stk of
     runScalar v acc inc check rest = case eval env [v] check of
       Left err -> Left err
       -- include the current v in the result
-      Right (_, VBool True : _)  -> Right (env, reverse (v : acc) ++ rest)
+      Right (_, VBool True : _)  -> Right (env, (v : acc) ++ rest)
       Right (_, VBool False : _) -> case eval env [v] inc of
         Left err       -> Left err
         Right (_,v':_) -> runScalar v' (v:acc) inc check rest
@@ -239,7 +294,7 @@ applyEager env stk = case stk of
     runScalarCheck v acc check inc rest = case eval env [v] check of
       Left err -> Left err
       -- include the current v in the result
-      Right (_, VBool True : _)  -> Right (env, reverse (v : acc) ++ rest)
+      Right (_, VBool True : _)  -> Right (env, (v : acc) ++ rest)
       Right (_, VBool False : _) -> case eval env [v] inc of
         Left err       -> Left err
         Right (_,v':_) -> runScalarCheck v' (v:acc) check inc rest
@@ -258,9 +313,9 @@ builtins =
   [ ("dup",   VBuiltin primDup)
   , ("swap",  VBuiltin primSwap)
   , ("pop",   VBuiltin primPop)
-  , ("+",     VBuiltin primAdd)
-  , ("-",     VBuiltin primSub)
-  , ("*",     VBuiltin primMul)
+  , ("+",     VBuiltin (binNumOp (+)  (+)))
+  , ("-",     VBuiltin (binNumOp (-)  (-)))
+  , ("*",     VBuiltin (binNumOp (*)  (*)))
   , ("/",     VBuiltin primFDiv)
   , ("div",   VBuiltin primIDiv)
   , ("==",    VBuiltin primEq)
@@ -269,7 +324,6 @@ builtins =
   , ("&&",    VBuiltin primAnd)
   , ("||",    VBuiltin primOr)
   , ("not",   VBuiltin primNot)
-  -- , ("if",    VBuiltin primIf)
   , ("head", VBuiltin primHead)
   , ("tail", VBuiltin primTail)
   , ("cons", VBuiltin primCons)
@@ -280,6 +334,10 @@ builtins =
   , ("parseInteger", VBuiltin primParseInteger)
   , ("parseFloat", VBuiltin primParseFloat)
   , ("length", VBuiltin primLength)
+  , ("\\", VBuiltin primSkip)
+  , ("empty", VBuiltin primEmpty)
+  , ("words", VBuiltin primWords)
+  , ("%", VBuiltin primMod)
   ]
 
 builtinsMap :: Map String Prim
@@ -298,22 +356,42 @@ primPop e stk = case stk of
   _ -> Left"pop: empty"
 
 -- | Numeric ops
-primAdd,primSub,primMul,primFDiv,primIDiv::Prim
-primAdd = binIntOp (+)
-primSub = binIntOp (-)
-primMul = binIntOp (*)
-primFDiv= binFloatOp (/)
-primIDiv= binIntOp div
+primFDiv,primIDiv::Prim
 
+primFDiv= binFloatOp (/)
+primIDiv= binIntOp   div
+
+binNumOp iop fop env stk = case stk of
+  -- both Ints => Int
+  VInt   r : VInt   l : xs ->
+    Right (env, VInt   (iop l r)              : xs)
+
+  -- Int (left) then Float (right) => Float
+  VFloat r : VInt   l : xs ->
+    Right (env, VFloat (fop (fromInteger l) r) : xs)
+
+  -- Float (left) then Int (right) => Float
+  VInt   r : VFloat l : xs ->
+    Right (env, VFloat (fop l (fromInteger r)) : xs)
+
+  -- both Floats => Float
+  VFloat r : VFloat l : xs ->
+    Right (env, VFloat (fop l r)              : xs)
+
+  _ -> Left "numeric op need two numbers"
+  
 binIntOp f e stk = case stk of
-  VInt b:VInt a:xs -> Right(e,VInt(f a b):xs)
-  _ -> Left"int op need2 ints"
+  VInt b    : VInt a    : xs -> Right (e, VInt (f a b)                   : xs)
+  VFloat b  : VInt a    : xs -> Right (e, VInt (f a (round b))           : xs)
+  VInt b    : VFloat a  : xs -> Right (e, VInt (f (round a) b)           : xs)
+  VFloat b  : VFloat a  : xs -> Right (e, VInt (f (round a) (round b))   : xs)
+  _                          -> Left "int op need2 ints"
 
 binFloatOp f e stk = case stk of
   VFloat a:VFloat b:xs   -> Right (e, VFloat (f b a)                        : xs)
   VInt   bi:VFloat a:xs  -> Right (e, VFloat (f (fromInteger bi) a)         : xs)
   VFloat a:VInt   bi:xs  -> Right (e, VFloat (f a (fromInteger bi))         : xs)
-  VInt   bi:VInt   ai:xs -> Right (e, VFloat (f (fromInteger ai) (fromInteger bi)) : xs)
+  VInt   bi:VInt   ai:xs -> Right (e, VFloat (f (fromInteger ai) (fromInteger bi))                        : xs)
   _                      -> Left "float op need nums"
 
 
@@ -321,10 +399,24 @@ binFloatOp f e stk = case stk of
 primLt,primGt::Prim
 primLt = cmpOp (<)
 primGt = cmpOp (>)
-cmpOp f e stk = case stk of
-  VInt b:VInt a:xs -> Right(e,VBool(f(fromInteger a)(fromInteger b)):xs)
-  VFloat b:VFloat a:xs -> Right(e,VBool(f a b):xs)
-  _ -> Left"cmp need nums"
+cmpOp :: (Double -> Double -> Bool) -> Prim
+cmpOp f env stk = case stk of
+  VInt b   : VInt a   : xs ->
+    Right (env, VBool (f (fromInteger a) (fromInteger b)) : xs)
+
+  VFloat b : VFloat a : xs ->
+    Right (env, VBool (f a b) : xs)
+
+  VFloat b : VInt a   : xs ->
+    Right (env, VBool (f (fromInteger a) b) : xs)
+
+  VInt b   : VFloat a : xs ->
+    Right (env, VBool (f a (fromInteger b)) : xs)
+
+  _ ->
+    Left "cmp need two numbers"
+
+
 
 -- | Equality
 primEq :: Prim
@@ -410,4 +502,27 @@ primLength::Prim
 primLength e stk = case stk of
   VList xs:ys -> Right (e, VInt (fromIntegral (length xs)) : ys)
   VQuote xs:ys -> Right (e, VInt (fromIntegral (length xs)) : ys)
+  VString s:ys -> Right (e, VInt (fromIntegral (length s)) : ys)
   _ -> Left "length: expected a list"
+
+primSkip::Prim
+primSkip e stk = Right (e, stk)
+
+primEmpty::Prim
+primEmpty e stk = case stk of
+  VList xs:ys -> Right (e, VBool (null xs) : ys)
+  VQuote xs:ys -> Right (e, VBool (null xs) : ys)
+  _ -> Left "empty: expected a list"
+
+primWords::Prim
+primWords e stk = case stk of
+  VString s:ys -> Right (e, VList (map VString (words s)) : ys)
+  _ -> Left "words: expected a string"
+
+primMod::Prim
+primMod e stk = case stk of
+  VInt a:VInt b:xs -> Right (e, VInt (a `mod` b) : xs)
+  VFloat a:VInt b:xs -> Right (e, VInt (round a `mod` b) : xs)
+  VInt a:VFloat b:xs -> Right (e, VInt (a `mod` round b) : xs)
+  VFloat a:VFloat b:xs -> Right (e, VInt (round a `mod` round b) : xs)
+  _ -> Left "mod need2 ints"

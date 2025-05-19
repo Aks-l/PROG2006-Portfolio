@@ -58,3 +58,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lab12
+    - hspec
