@@ -10,11 +10,18 @@ main = hspec spec
 
 spec :: Spec
 spec = describe "bprog evaluator" $ do
-  let run input = case tokenize input >>= parseTokens >>= eval initEnv [] of
-        Left err           -> error err
-        Right (_, stk)     -> case stk of
-                                v : _ -> show v
-                                []    -> error "Empty stack"
+  let run input =
+        case tokenize input of
+          Left perr -> error (show perr)
+          Right toks ->
+            case parseTokens toks of
+              Left perr -> error (show perr)
+              Right ast ->
+                case eval initEnv [] ast of
+                  Left err -> error (show err)
+                  Right (_, stk) -> case stk of
+                    v : _ -> show v
+                    []    -> error "Empty stack"
 
       t input expected = it (show input) $
         run input `shouldBe` expected
@@ -172,4 +179,3 @@ spec = describe "bprog evaluator" $ do
       \ toList { [ ] swap times cons } fun \
       \ gen1toNum { max swap := 1 loop { dup max > } { dup 1 + } } fun \
       \ 4 gen1toNum 5 toList map odd"                            "[True,False,True,False,True]"
-  
