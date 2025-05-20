@@ -17,6 +17,7 @@ data Game = Game
   , history   :: [Map Point Color]   -- for simple ko
   , passCount :: Int
   , gameSize  :: Int
+  , komi      :: Double
   , gameFileName  :: String
   , bot :: Maybe Color
   , bCaptured :: Int

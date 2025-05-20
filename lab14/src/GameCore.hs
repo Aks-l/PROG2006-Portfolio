@@ -117,6 +117,7 @@ apply (Play p) g
                     , history   = b : history g
                     , passCount = 0
                     , gameSize  = sz
+                    , komi      = komi g 
                     , gameFileName  = gameFileName g
                     , bot       = bot g
                     , bCaptured  = if col == Black

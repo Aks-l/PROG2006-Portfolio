@@ -9,13 +9,14 @@ import GameCore (apply)
 import           Data.List.Split      (splitOn)
 import           Control.Monad        (forM_, foldM)
 import           Data.Char            (ord, chr)
-import           System.IO            (hFlush, stdout, withFile, IOMode(ReadWriteMode), hFileSize, hSetFileSize)
+import Control.Exception (evaluate)
+import System.IO (withFile, hGetContents, hSeek, SeekMode(AbsoluteSeek), hPutStr, IOMode(..))
 
 
-createGameFile :: String -> String -> IO ()
-createGameFile boardSize time = do
+createGameFile :: String -> Double -> String -> IO ()
+createGameFile boardSize komi time = do
   let fileName = time ++ ".sgf"
-  writeFile fileName ("(;FF[4]CA[UTF-8]GM[1]SZ[" ++ boardSize ++ "]\n")
+  writeFile fileName ("(;FF[4]CA[UTF-8]GM[1]SZ[" ++ boardSize ++ "]KM[" ++ show komi ++ "])")
   putStrLn $ "Game file created: " ++ fileName
 
 updateGameFile :: String -> Move -> Color -> IO ()
@@ -25,23 +26,17 @@ updateGameFile gameFileName move col = do
                White -> "W"
       m = gameNotation move
       fileName = gameFileName ++ ".sgf"
-  
-  truncateLastByte fileName
-  appendFile fileName $ ";" ++ color ++ "[" ++ m ++ "]\n" 
-  endGameFile gameFileName
 
-truncateLastByte :: FilePath -> IO ()
-truncateLastByte path =
-  withFile path ReadWriteMode $ \h -> do
-    sz <- hFileSize h
-    if sz > 0
-      then hSetFileSize h (sz - 1)
-      else return ()
-  
-endGameFile :: String -> IO ()
-endGameFile gameFileName = do
-  let fileName = gameFileName ++ ".sgf"
-  appendFile fileName ")"
+  stripped <- withFile fileName ReadMode $ \h -> do
+    contents <- hGetContents h
+    let forced = filter (/= ')') contents
+    evaluate (length forced)  -- force full evaluation to release handle
+    return forced
+
+  let updated = stripped ++ ";" ++ color ++ "[" ++ m ++ "]\n)"
+
+  withFile fileName WriteMode $ \h ->
+    hPutStr h updated
 
 gameNotation :: Move -> String
 gameNotation Pass = ""
@@ -63,9 +58,17 @@ parseSGF content filePath = do
       sizeMatches :: [[String]]
       sizeMatches = content =~ ("SZ\\[([0-9]+)\\]" :: String)
 
+      komiMatches :: [[String]]
+      komiMatches = content =~ ("KM\\[([0-9]+(\\.[0-9]+)?)\\]" :: String)
+
+
   -- extract the one and only capture group
-  [[_, s]] <- pure sizeMatches
-  let size    = read s
+  size <- case sizeMatches of
+    [[_, s]] -> Just (read s)
+    _        -> Just 19  -- Default to size 19 if no match
+  komi <- case komiMatches of
+    [[_, k]] -> Just (read k)
+    _        -> Just 6.5  -- Default to komi 6.5 if no match
   if size < 1 || size > 19 then Nothing else Just ()
   let fileName = take (length filePath - 4) filePath
       tempGame = Game
@@ -74,6 +77,7 @@ parseSGF content filePath = do
         , history   = []
         , passCount = 0
         , gameSize  = size
+        , komi      = komi
         , gameFileName  = fileName
         , bot      = Nothing
         , bCaptured = 0

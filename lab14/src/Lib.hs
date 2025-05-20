@@ -26,19 +26,19 @@ getUnixTime = show . round <$> getPOSIXTime
 -- | ASCII stones: ○=Black, ●=White, +=empty
 stoneChar :: Map Point Color -> Point -> Char
 stoneChar b p = case Map.lookup p b of
-  Just Black -> '○'
-  Just White -> '●'
+  Just Black -> '◯'
+  Just White -> '⬤'
   Nothing    -> '+'
 
 -- | Print board using dynamic size
 printBoard :: Game -> IO ()
 printBoard g = do
-  let b   = board g
-      sz  = gameSize g
-  forM_ [sz-1,sz-2..0] $ \y -> do
+  let b  = board g
+      sz = gameSize g
+  forM_ [0..sz-1] $ \y -> do  -- go from top (0) to bottom (sz-1)
     putStr $ (if y < 10 then "  " else " ") ++ show y
     forM_ [0..sz-1] $ \x ->
-      putStr $ "  " ++ [stoneChar b (x,y)]
+      putStr $ "  " ++ [stoneChar b (x, y)]
     putStrLn ""
   putStr "   "
   forM_ [0..sz-1] $ \x ->
@@ -55,7 +55,8 @@ getMove col g = do
   case words line of
     ["q"] -> do
       enterInteractive g (length (history g) -1)
-      getMove col g  
+      printBoard g
+      getMove col g
     ["pass"] -> return Pass
     [sx, sy] ->
       case (readMaybe sx, readMaybe sy) of
@@ -78,6 +79,7 @@ enterInteractive game idx = do
   case command of
     "q" -> return ()
     "p" -> enterInteractive game (validIdx - 1)
+    "pp" -> enterInteractive game (validIdx - 10)
     "n" -> enterInteractive game (validIdx + 1)
     _   -> putStrLn "Invalid command" >> enterInteractive game validIdx
 
@@ -97,6 +99,15 @@ getBotColor =
           "B" -> return (Just White)
           _   -> putStrLn "Invalid color, defaulting to Black." >>
                   return (Just White)
+
+-- | Get komi from user
+getKomi :: IO Double
+getKomi = do
+  putStrLn "Enter komi (default 6.5):"
+  komiStr <- getLine
+  case readMaybe komiStr of
+    Just k | k >= 0 -> return k
+    _               -> return 6.5
 
 -- | Main game loop
 gameLoop :: Game -> IO ()
@@ -125,7 +136,9 @@ gameEntry = do
     (filepath:_) -> do
       content <- readFile filepath
       case parseSGF content filepath of
-        Just game -> gameLoop game
+        Just game -> do
+          getBotColor >>= \bot -> 
+            gameLoop game { bot = bot }
         Nothing   -> putStrLn "Invalid SGF file" >> return ()
     [] -> do
       putStrLn "Enter board size (1-19):"
@@ -134,13 +147,15 @@ gameEntry = do
         Just sz | sz > 0 && sz <= 19 ->
           getUnixTime   >>= \boardTime ->
           getBotColor   >>= \bot ->
-          createGameFile boardSize boardTime >>
+          getKomi       >>= \komi ->
+          createGameFile boardSize komi boardTime >>
           gameLoop Game
             { board        = Map.empty
             , toPlay       = Black
             , history      = []
             , passCount    = 0
             , gameSize     = sz
+            , komi         = komi
             , gameFileName = boardTime
             , bot          = bot
             , bCaptured    = 0
@@ -149,13 +164,13 @@ gameEntry = do
         _ -> putStrLn "Invalid size, must be between 1 and 19." >>
              gameEntry
           
--- | End game
 endGame :: Game -> IO ()
 endGame g = do
   let (bTerritory, wTerritory) = countTerritory (gameSize g) (board g)
-  putStrLn "Game ended!"
-  putStrLn $ "Black score: " ++ show bTerritory ++ " + " ++ show (bCaptured g) ++ " = " ++ show (bTerritory + bCaptured g)
-  putStrLn $ "White score: " ++ show wTerritory ++ " + " ++ show (wCaptured g) ++ " = " ++ show (wTerritory + wCaptured g)
-  putStrLn $ "Winner: " ++ (if bTerritory + bCaptured g > wTerritory + wCaptured g then "Black" else "White")
+      bScore = fromIntegral bTerritory + fromIntegral (bCaptured g)
+      wScore = fromIntegral wTerritory + fromIntegral (wCaptured g) + komi g
 
- 
+  putStrLn "Game ended!"
+  putStrLn $ "Black score: " ++ show bTerritory ++ " + " ++ show (bCaptured g) ++ " = " ++ show bScore
+  putStrLn $ "White score: " ++ show wTerritory ++ " + " ++ show (wCaptured g) ++ " + " ++ show (komi g) ++ " = " ++ show wScore
+  putStrLn $ "Winner: " ++ if bScore > wScore then "Black" else "White"
