@@ -36,9 +36,25 @@ repl env stk = do
   case tokenize line >>= parseTokens of
     Left err -> putStrLn (show err)  >> repl env stk
     Right ts ->
-      case eval env stk ts of
-        Left err     -> putStrLn ("Error: " ++ show err) >> repl env stk
-        Right (e,s') -> print s' >> repl e s'
+      case ts of
+        [TSym "read"] -> do
+          putStr "input> "
+          hFlush stdout
+          line <- getLine
+          repl env (VString line : stk)
+
+        [TSym "write"] -> case stk of
+          v:vs -> do
+            case v of
+              VString s -> putStrLn s
+              _         -> print v
+            repl env vs
+          _ -> putStrLn "Error: Stack empty" >> repl env stk
+
+        _ -> case eval env stk ts of
+          Left err     -> putStrLn ("Error: " ++ show err) >> repl env stk
+          Right (e,s') -> print s' >> repl e s'
+
 
 tokenize :: String -> Either ParserError [String]
 tokenize = go [] . dropWhile isSpace
