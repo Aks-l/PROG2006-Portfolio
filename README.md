@@ -1,26 +1,28 @@
 # PROG2006 Portfolio
 
-In the repository you are reading this README.md file, 
+In the repository you are reading this README.md file, all folder for the labs in my portfolio are present. They are labelled labxx where xx is the number of the lab.
+Lab 11 and lab 13 are not made, and are not in the repository, but all other labs 1-14 are here.
+For haskell and rust projects, all files are included, and it should be easy to run with `stack run` on haskell and `cargo run` on rust.
 
 ## Labs
 
 ### Easy tasks
 - [lab3](./lab03/helloworld/) (Input/Output and head in Haskell)
-- lab4 (Formatting output and frequency countinbg in Haskell)
-- lab5 (Use of functions and recursiveness in Haskell)
-- lab6 (Message decoding using monads and bind in Haskell)
-- lab7 (Lotto winnings calculator using more functions and lambdas in Haskell)
-- lab8 (Bird counting using iterators and other methods in Rust)
+- [lab4](./lab04/)(Formatting output and frequency countinbg in Haskell)
+- [lab5](./lab05/)(Use of functions and recursiveness in Haskell)
+- [lab6](./lab06/)(Message decoding using monads and bind in Haskell)
+- [lab7](./lab07/)(Lotto winnings calculator using more functions and lambdas in Haskell)
+- [lab8](./lab08/)(Bird counting using iterators and other methods in Rust)
 
 ### Hard tasks
-- lab9 (API)
-- lab12 (BPROG Interpreter)
-- lab14 (Game of Go)
+- [lab09](./lab09/)  (API)
+- [lab12](./lab12/) (BPROG Interpreter)
+- [lab14](./lab14/) (Game of Go)
 
 ### Additional tasks
-- Lab1 (Rock Paper Scissors)
-- Lab2 (API for creating, funding and solving "gitlab" issues)
-- Lab10 (UNCOMPLETED. A very simple test of gui and keyboard inputs in Haskell)
+- [lab01](./lab01/) (Rock Paper Scissors)
+- [lab2](./lab2/) (API for creating, funding and solving "gitlab" issues)
+- [lab10](./lab10/)  (UNCOMPLETED. A very simple test of gui and keyboard inputs in Haskell)
 
 ## Overall difficulty feeling
 In the start of the semester, i had never touched haskell or any purely functional programming language. This made the first labs require a pretty steep learning curve.
