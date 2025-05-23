@@ -81,6 +81,7 @@ enterInteractive game idx = do
     "p" -> enterInteractive game (validIdx - 1)
     "pp" -> enterInteractive game (validIdx - 10)
     "n" -> enterInteractive game (validIdx + 1)
+    "nn" -> enterInteractive game (validIdx + 10)
     _   -> putStrLn "Invalid command" >> enterInteractive game validIdx
 
 

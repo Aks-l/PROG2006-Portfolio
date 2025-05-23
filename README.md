@@ -15,14 +15,14 @@ For haskell and rust projects, all files are included, and it should be easy to 
 - [lab8](./lab08/)(Bird counting using iterators and other methods in Rust)
 
 ### Hard tasks
-- [lab09](./lab09/)  (API)
+- [lab09](./lab09/) (API)
 - [lab12](./lab12/) (BPROG Interpreter)
 - [lab14](./lab14/) (Game of Go)
 
 ### Additional tasks
 - [lab01](./lab01/) (Rock Paper Scissors)
 - [lab2](./lab2/) (API for creating, funding and solving "gitlab" issues)
-- [lab10](./lab10/)  (UNCOMPLETED. A very simple test of gui and keyboard inputs in Haskell)
+- [lab10](./lab10/) (UNCOMPLETED. A very simple test of gui and keyboard inputs in Haskell)
 
 ## Overall difficulty feeling
 In the start of the semester, i had never touched haskell or any purely functional programming language. This made the first labs require a pretty steep learning curve.
@@ -39,7 +39,7 @@ To make it easy for other to use the API for themselves, the required Gitlab tok
 
 While the api works with web stuff, this task is about custom types and data structures in Haskell. It proved to me how important it is to have a good plan and idea before starting to code and not do everything _on the go_, as I had to redo much of this task when the poorly structured first attemt got too overwhelming.
 
-After redoing it with a proper skeleton, it was much easier to add new features and everything required according to the task description. The program passes all tests, and is also easy to expand furter.
+After redoing it with a proper skeleton, it was much easier to add new features and everything required according to the task description. The program passes all tests, and is also easy to expand furter. [Further details](./lab12/)
 
 ### Lab 14 - Game of Go
 Opposed to web and types, this lab lets me work on writing functions in Haskell. It involves data structures for The game, The pieces and the coordinates, although not nearly as expansive as in lab12.
