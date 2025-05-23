@@ -26,7 +26,7 @@ For haskell and rust projects, all files are included, and it should be easy to 
 
 ## Overall difficulty feeling
 In the start of the semester, i had never touched haskell or any purely functional programming language. This made the first labs require a pretty steep learning curve.
-This made initial _easy_ tasks seem harder than the latter, because of the complete shift of thinking and thought process.
+When doing the initial _easy_ tasks, doing them seemed harder than doing the latter, because of the complete shift of thinking and thought process in the first ones.
 
 Because the easier taks felt more of use for my own learning, I want to focus most on the tasks i labeled as harder as they feel more definite of what I have learned across the semester. They are all done in haskell, but they explore very different themes regardless.
 
@@ -36,6 +36,7 @@ The api works with web technologies through the use of `Network.Wai`, `Servant.C
 To make it easy for other to use the API for themselves, the required Gitlab token is easy to edit in the Token.hs file. 
 
 ### Lab 12 - Interpreter
+
 While the api works with web stuff, this task is about custom types and data structures in Haskell. It proved to me how important it is to have a good plan and idea before starting to code and not do everything _on the go_, as I had to redo much of this task when the poorly structured first attemt got too overwhelming.
 
 After redoing it with a proper skeleton, it was much easier to add new features and everything required according to the task description. The program passes all tests, and is also easy to expand furter.
@@ -62,3 +63,10 @@ The first solidity task was very interesting, as i had not worked with blockchan
 The second solidity task was a bit more challenging. I got all the important functions to work, including adding a payout, submitting an issue and claiming an issue, however i was not able to enforce a persistant change of values in transactions across the different files. I couldn't fix this before time went out, and since the hard deadline for the task passed, and there was not going to be any solidity on the exam, i was not as motivated to complete it.
 
 Lab 10 in my project is not snake, but a small test of gui in Haskell. I managed to create a circle that can be moved with arrow keys, but i quickly realized that this is not what haskell is best at, and doing it in Rust/Iced was more apropriate. I decided not to do the snake task to spend my time on doing the higher level tasks isntead.
+
+## What i learned
+During the course i have spent most time coding in haskell, because that is what we spent most tim on in class, and was the most foreign to me. 
+In would say i have spent about the same time on Solidity and Rust, which means only a couple weeks on each. From this i have gotten to know the syntax and what the differences of the languages are and what makes them unique. I understand the borrowing consepts in Rust and understand how it works differently with memory allocation on the stack and heap compared to other C-like languages, but i would spend a lot of time on typos and ownership wrongdoings if doing a bigger project. 
+With Haskell on the other hand, I feel like i have gotten to know the language on a deeper level. I understand the different roles the functions get when they are calculated, and I am confident in saying that i can understand what most (Prelude) functinos do, and pretty efficiently detect what is wrong and/or have to be fixed with the code.
+I am a fan of how Haskell have a lot of different ways to implement features, and there is often a choice wether using a where, case of or function guards are the best to use here and so on. It was definitly the hardest language i used this year (With others including Go-lang and javascript)
+I did use LLMs, mostly ChatGPT frequently when i had some error i could not detect where it came from. I had it explain what went wrong and why it did not work, then I often fixed it on my own. To be fair, using ChatGPT in haskell does not work anywhere near as well as it does with much more frequent languages like Python and JavaScript, as it has much less available data to train itself on. Because of this, the solutions it comes with are often very similar looking, always wanting to implement a go-helper function, and it ends up becoming very smelly and verbose. Therefore it is bestly used for bug fixing and finding, and not that good at writing for me, which is fitting when learning a new language as it forces me to write on my own.
