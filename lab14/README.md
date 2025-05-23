@@ -41,6 +41,11 @@ The turn is passed to the other player which repeats the process, or the bot who
 - A file is created every new game
 - File gets updated every move
 
+#### Game review
+- Enter q instead of a valid move to enter interactive mode.
+- In interactive mode, use p or n for previous and next move.
+- Enter q again to return to the game.
+
 ## Everey REPL loop:
 #### Print the board
 
